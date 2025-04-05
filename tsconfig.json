@@ -1,0 +1,18 @@
+// tsconfig.json
+{
+    "compilerOptions": {
+      "target": "ES2022",
+      "module": "NodeNext", // Use NodeNext for modern ESM handling
+      "moduleResolution": "NodeNext",
+      "outDir": "./dist",
+      "rootDir": "./src",
+      "strict": true,
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "sourceMap": true, // Useful for debugging
+      "declaration": true // Generates .d.ts files
+    },
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist"]
+  }
