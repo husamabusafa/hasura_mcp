@@ -1,5 +1,6 @@
-
 # Advanced Hasura GraphQL MCP Server
+
+[![smithery badge](https://smithery.ai/badge/@husamabusafa/hasura_mcp)](https://smithery.ai/server/@husamabusafa/hasura_mcp)
 
 **Version:** 1.1.0
 
@@ -67,6 +68,15 @@ This server exposes the following MCP capabilities:
 
 ## Setup and Installation
 
+### Installing via Smithery
+
+To install Advanced Hasura GraphQL Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@husamabusafa/hasura_mcp):
+
+```bash
+npx -y @smithery/cli install @husamabusafa/hasura_mcp --client claude
+```
+
+### Manual Installation
 1.  **Clone the Repository (if applicable):**
     ```bash
     # git clone <repository_url>
