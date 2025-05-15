@@ -1,0 +1,23 @@
+# Smithery configuration file: https://smithery.ai/docs/build/project-config
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - hasuraEndpoint
+    properties:
+      hasuraEndpoint:
+        type: string
+        description: URL of the Hasura GraphQL endpoint
+      adminSecret:
+        type: string
+        description: Optional Hasura admin secret for mutations
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({ command: 'node', args: config.adminSecret && config.adminSecret.length > 0 ? ['dist/index.js', config.hasuraEndpoint, config.adminSecret] : ['dist/index.js', config.hasuraEndpoint] })
+  exampleConfig:
+    hasuraEndpoint: https://my-hasura.cloud/v1/graphql
+    adminSecret: mysecretkey123
