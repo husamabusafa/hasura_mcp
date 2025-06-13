@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z, ZodRawShape } from "zod";
 import { GraphQLClient, gql, ClientError } from 'graphql-request';
+import { config } from 'dotenv';
 import {
     getIntrospectionQuery,
     IntrospectionQuery,
@@ -31,12 +32,36 @@ const server = new McpServer({
 });
 
 const args = process.argv.slice(2);
-if (args.length < 1) {
+
+// Check for --env-file argument
+let envFileIndex = args.indexOf('--env-file');
+if (envFileIndex !== -1 && envFileIndex + 1 < args.length) {
+  const envFilePath = args[envFileIndex + 1];
+  console.log(`[INFO] Loading environment variables from: ${envFilePath}`);
+  config({ path: envFilePath });
+  // Remove --env-file and its value from args
+  args.splice(envFileIndex, 2);
+}
+
+// Parse remaining arguments
+let HASURA_ENDPOINT: string;
+let ADMIN_SECRET: string | undefined;
+
+if (args.length >= 1) {
+  HASURA_ENDPOINT = args[0];
+  ADMIN_SECRET = args[1];
+} else {
+  // Try to read from environment variables
+  HASURA_ENDPOINT = process.env.HASURA_GRAPHQL_ENDPOINT || '';
+  ADMIN_SECRET = process.env.HASURA_ADMIN_SECRET;
+}
+
+if (!HASURA_ENDPOINT) {
   console.error(`Usage: node ${process.argv[1]} <HASURA_GRAPHQL_ENDPOINT> [ADMIN_SECRET]`);
+  console.error(`   or: node ${process.argv[1]} --env-file <path-to-env-file>`);
+  console.error(`Environment variables: HASURA_GRAPHQL_ENDPOINT, HASURA_ADMIN_SECRET`);
   process.exit(1);
 }
-const HASURA_ENDPOINT = args[0];
-const ADMIN_SECRET = args[1];
 
 console.log(`[INFO] Targeting Hasura Endpoint: ${HASURA_ENDPOINT}`);
 if (ADMIN_SECRET) {

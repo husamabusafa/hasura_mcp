@@ -84,7 +84,9 @@ This server exposes the following MCP capabilities:
 
 ## Running the Server
 
-Execute the compiled script from your terminal, providing the Hasura endpoint URL and optionally the admin secret:
+Execute the compiled script from your terminal. There are several ways to provide the Hasura endpoint and admin secret:
+
+### Option 1: Command Line Arguments
 
 ```bash
 # Using pnpm start script (defined in package.json)
@@ -106,11 +108,36 @@ or
 node dist/index.js https://my-hasura.cloud/v1/graphql mysecretkey123
 ```
 
-If no admin secret is needed (using default role permissions):
+### Option 2: Environment File
+
+Create a `.env` file (copy from `.env.example`) and use the `--env-file` argument:
 
 ```bash
-pnpm start https://my-hasura.cloud/v1/graphql
+# Using environment file
+pnpm start -- --env-file .env
+
+# Or using Node directly
+node dist/index.js --env-file .env
 ```
+
+Your `.env` file should contain:
+
+```env
+HASURA_GRAPHQL_ENDPOINT=https://my-hasura.cloud/v1/graphql
+HASURA_ADMIN_SECRET=mysecretkey123
+```
+
+### Option 3: System Environment Variables
+
+Set environment variables in your system and run without arguments:
+
+```bash
+export HASURA_GRAPHQL_ENDPOINT=https://my-hasura.cloud/v1/graphql
+export HASURA_ADMIN_SECRET=mysecretkey123
+pnpm start
+```
+
+If no admin secret is needed (using default role permissions), simply omit the `HASURA_ADMIN_SECRET` variable or argument.
 
 The server will start, attempt an initial schema introspection, connect to the STDIO transport, and log status messages to `stderr`. It listens for MCP JSON-RPC requests on `stdin` and sends responses to `stdout`.
 
@@ -125,7 +152,7 @@ To connect this server to an MCP client like Cursor:
 2.  **Configure the Client:** Open your client's configuration file (e.g., `settings.json` for Cursor, `claude_desktop_config.json` for Claude Desktop).
 3.  **Add Server Entry:** Add an entry under the appropriate key (e.g., `cursor.customMcpServers` array for Cursor, `mcpServers` object for Claude Desktop).
 
-**Example Cursor `settings.json`:**
+**Example Cursor `settings.json` with command line arguments:**
 
 ```json
 {
@@ -147,7 +174,29 @@ To connect this server to an MCP client like Cursor:
 }
 ```
 
-**Example Claude Desktop `claude_desktop_config.json`:**
+**Example Cursor `settings.json` with environment file:**
+
+```json
+{
+  // ... other settings ...
+  "cursor.customMcpServers": [
+    // ... other servers ...
+    {
+      "name": "My Advanced Hasura Server", // Name shown in Cursor UI
+      "command": "/path/to/your/node", // <<< Absolute path from 'which node'
+      "args": [
+        "/absolute/path/to/mcp-hasura-advanced/dist/index.js", // <<< Absolute path to compiled script
+        "--env-file",
+        "/absolute/path/to/mcp-hasura-advanced/.env"        // <<< Path to your .env file
+      ],
+      // Optional but recommended for module resolution consistency:
+      "cwd": "/absolute/path/to/mcp-hasura-advanced" // <<< Absolute path to project root
+    }
+  ]
+}
+```
+
+**Example Claude Desktop `claude_desktop_config.json` with command line arguments:**
 
 ```json
 {
@@ -159,6 +208,26 @@ To connect this server to an MCP client like Cursor:
                 "/absolute/path/to/mcp-hasura-advanced/dist/index.js", // <<< Absolute path to compiled script
                 "https://YOUR_HASURA_ENDPOINT.com/v1/graphql",      // <<< Your endpoint
                 "YOUR_ADMIN_SECRET"                                   // <<< Your secret (REMOVE if no secret)
+            ],
+            // Optional:
+            // "cwd": "/absolute/path/to/mcp-hasura-advanced"
+        }
+    }
+}
+```
+
+**Example Claude Desktop `claude_desktop_config.json` with environment file:**
+
+```json
+{
+    "mcpServers": {
+        // ... other servers ...
+        "hasura-advanced": { // Key used internally by Claude
+            "command": "/path/to/your/node", // <<< Absolute path from 'which node'
+            "args": [
+                "/absolute/path/to/mcp-hasura-advanced/dist/index.js", // <<< Absolute path to compiled script
+                "--env-file",
+                "/absolute/path/to/mcp-hasura-advanced/.env"        // <<< Path to your .env file
             ],
             // Optional:
             // "cwd": "/absolute/path/to/mcp-hasura-advanced"
