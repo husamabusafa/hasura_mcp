@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/husamabusafa-hasura-mcp-badge.png)](https://mseep.ai/app/husamabusafa-hasura-mcp)
+
 
 # Advanced Hasura GraphQL MCP Server
 
