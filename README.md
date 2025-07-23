@@ -1,4 +1,3 @@
-
 # Advanced Hasura GraphQL MCP Server
 
 **Version:** 1.1.0
@@ -6,6 +5,10 @@
 This Model Context Protocol (MCP) server provides an advanced interface for AI agents (like those in Cursor or Claude Desktop) to interact with a Hasura GraphQL endpoint. It enables agents to discover the API structure, execute both read-only queries and mutations (with caution), preview data, perform aggregations, and check service health.
 
 This server enhances LLM capabilities by allowing them to leverage your Hasura API dynamically based on natural language requests.
+
+<a href="https://glama.ai/mcp/servers/@husamabusafa/hasura_mcp">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@husamabusafa/hasura_mcp/badge" alt="Advanced Hasura GraphQL Server MCP server" />
+</a>
 
 ## Features
 
