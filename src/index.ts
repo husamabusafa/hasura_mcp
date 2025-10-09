@@ -26,23 +26,38 @@ const server = new McpServer({
   version: SERVER_VERSION,
   capabilities: {
     resources: {},
-    tools: {},
+    tools: {
+      listChanged: true,
+    },
   },
 });
 
 const args = process.argv.slice(2);
 if (args.length < 1) {
-  console.error(`Usage: node ${process.argv[1]} <HASURA_GRAPHQL_ENDPOINT> [ADMIN_SECRET]`);
+  console.error(`Usage: node ${process.argv[1]} <HASURA_GRAPHQL_ENDPOINT> [ADMIN_SECRET] [--read-only]`);
+  console.error(`  or set READ_ONLY=true environment variable for read-only mode`);
   process.exit(1);
 }
-const HASURA_ENDPOINT = args[0];
-const ADMIN_SECRET = args[1];
+
+const readOnlyFromEnv = process.env.READ_ONLY === 'true';
+const readOnlyFromArgs = args.includes('--read-only');
+const isReadOnly = readOnlyFromEnv || readOnlyFromArgs;
+
+const filteredArgs = args.filter(arg => arg !== '--read-only');
+const HASURA_ENDPOINT = filteredArgs[0];
+const ADMIN_SECRET = filteredArgs[1];
 
 console.log(`[INFO] Targeting Hasura Endpoint: ${HASURA_ENDPOINT}`);
 if (ADMIN_SECRET) {
   console.log("[INFO] Using Admin Secret.");
 } else {
   console.warn("[WARN] No Admin Secret provided. Ensure Hasura permissions are configured for the default role.");
+}
+
+if (isReadOnly) {
+  console.log("[INFO] Running in READ-ONLY mode - mutations disabled for safe LLM interactions");
+} else {
+  console.log("[INFO] Running in full mode - mutations enabled");
 }
 
 const headers: Record<string, string> = {};
@@ -142,27 +157,31 @@ server.tool(
   }
 );
 
-server.tool(
-  "run_graphql_mutation",
-  "Executes a GraphQL mutation to insert, update, or delete data...",
-  {
-    mutation: z.string().describe("The GraphQL mutation string."),
-    variables: z.record(z.unknown()).optional().describe("Optional. An object containing variables..."),
-  },
-  async ({ mutation, variables }) => {
-    console.log(`[INFO] Executing tool 'run_graphql_mutation'`);
-    if (!mutation.trim().toLowerCase().startsWith('mutation')) {
-        throw new Error("The provided string does not appear to be a mutation...");
+if (!isReadOnly) {
+  server.tool(
+    "run_graphql_mutation",
+    "Executes a GraphQL mutation to insert, update, or delete data...",
+    {
+      mutation: z.string().describe("The GraphQL mutation string."),
+      variables: z.record(z.unknown()).optional().describe("Optional. An object containing variables..."),
+    },
+    async ({ mutation, variables }) => {
+      console.log(`[INFO] Executing tool 'run_graphql_mutation'`);
+      if (!mutation.trim().toLowerCase().startsWith('mutation')) {
+          throw new Error("The provided string does not appear to be a mutation...");
+      }
+      try {
+        const result = await makeGqlRequest(mutation, variables);
+        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+      } catch (error: any) {
+        console.error(`[ERROR] Tool 'run_graphql_mutation' failed: ${error.message}`);
+        throw error;
+      }
     }
-    try {
-      const result = await makeGqlRequest(mutation, variables);
-      return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-    } catch (error: any) {
-      console.error(`[ERROR] Tool 'run_graphql_mutation' failed: ${error.message}`);
-      throw error;
-    }
-  }
-);
+  );
+} else {
+  console.log("[INFO] Mutation tool disabled in read-only mode");
+}
 
 server.tool(
   "list_tables",
@@ -174,7 +193,7 @@ server.tool(
       console.log(`[INFO] Executing tool 'list_tables' for schema: ${schemaName || 'ALL'}`);
       try {
         const schema = await getIntrospectionSchema();
-        
+
         const query = gql`
           query GetTablesWithDescriptions {
             __type(name: "query_root") {
@@ -189,23 +208,23 @@ server.tool(
             }
           }
         `;
-        
+
         const result = await makeGqlRequest(query);
-        
+
         const tablesData: Record<string, Array<{name: string, description: string | null}>> = {};
-        
+
         if (result.__type && result.__type.fields) {
           const fieldEntries = result.__type.fields;
-          
+
           for (const field of fieldEntries) {
-            if (field.name.includes('_aggregate') || 
-                field.name.includes('_by_pk') || 
+            if (field.name.includes('_aggregate') ||
+                field.name.includes('_by_pk') ||
                 field.name.includes('_stream') ||
                 field.name.includes('_mutation') ||
                 field.name.startsWith('__')) {
               continue;
             }
-            
+
             let currentSchema = 'public';
             if (field.description && field.description.includes('schema:')) {
               const schemaMatch = field.description.match(/schema:\s*([^\s,]+)/i);
@@ -213,29 +232,29 @@ server.tool(
                 currentSchema = schemaMatch[1];
               }
             }
-            
+
             if (schemaName && currentSchema !== schemaName) {
               continue;
             }
-            
+
             if (!tablesData[currentSchema]) {
               tablesData[currentSchema] = [];
             }
-            
+
             tablesData[currentSchema].push({
               name: field.name,
               description: field.description
             });
           }
         }
-        
+
         const formattedOutput = Object.entries(tablesData)
           .map(([schema, tables]) => ({
             schema,
             tables: tables.sort((a, b) => a.name.localeCompare(b.name))
           }))
           .sort((a, b) => a.schema.localeCompare(b.schema));
-          
+
         return { content: [{ type: "text", text: JSON.stringify(formattedOutput, null, 2) }] };
       } catch (error: any) {
         console.error(`[ERROR] Tool 'list_tables' failed: ${error.message}`);
@@ -299,15 +318,15 @@ server.tool(
           name: typeInfo.name,
           description: typeInfo.description || null,
           ...(typeInfo.kind === 'OBJECT' || typeInfo.kind === 'INTERFACE' ? {
-              fields: (typeInfo as IntrospectionObjectType | IntrospectionInterfaceType).fields?.map((f: IntrospectionField) => ({ 
+              fields: (typeInfo as IntrospectionObjectType | IntrospectionInterfaceType).fields?.map((f: IntrospectionField) => ({
                   name: f.name,
                   description: f.description || null,
                   type: JSON.stringify(f.type),
-                  args: f.args?.map((a: IntrospectionInputValue) => ({ name: a.name, type: JSON.stringify(a.type) })) || [] 
+                  args: f.args?.map((a: IntrospectionInputValue) => ({ name: a.name, type: JSON.stringify(a.type) })) || []
               })) || []
           } : {}),
           ...(typeInfo.kind === 'INPUT_OBJECT' ? {
-              inputFields: (typeInfo as IntrospectionInputObjectType).inputFields?.map((f: IntrospectionInputValue) => ({ 
+              inputFields: (typeInfo as IntrospectionInputObjectType).inputFields?.map((f: IntrospectionInputValue) => ({
                   name: f.name,
                   description: f.description || null,
                   type: JSON.stringify(f.type),
@@ -345,7 +364,7 @@ server.tool(
           throw new Error(`Table (Object type) '${tableName}' not found in schema.`);
       }
       const scalarFields = tableType.fields
-        ?.filter(f => { 
+        ?.filter(f => {
             let currentType = f.type;
             while (currentType.kind === 'NON_NULL' || currentType.kind === 'LIST') currentType = currentType.ofType;
             return currentType.kind === 'SCALAR' || currentType.kind === 'ENUM';
@@ -378,7 +397,7 @@ server.tool(
   },
   async ({ tableName, aggregateFunction, field, filter }) => {
     console.log(`[INFO] Executing tool 'aggregate_data': ${aggregateFunction} on ${tableName}...`);
-    
+
     if (aggregateFunction !== 'count' && !field) {
       throw new Error(`The 'field' parameter is required for '${aggregateFunction}' aggregation.`);
     }
@@ -387,21 +406,21 @@ server.tool(
     }
 
     const aggregateTableName = `${tableName}_aggregate`;
-    
+
     let aggregateSelection = '';
     if (aggregateFunction === 'count') {
         aggregateSelection = `{ count }`;
-    } else if (field) { 
+    } else if (field) {
         aggregateSelection = `{ ${aggregateFunction} { ${field} } }`;
     } else {
         throw new Error(`'field' parameter is missing for '${aggregateFunction}' aggregation.`);
     }
 
     const boolExpTypeName = `${tableName}_bool_exp`;
-    const filterVariableDefinition = filter ? `($filter: ${boolExpTypeName}!)` : ""; 
+    const filterVariableDefinition = filter ? `($filter: ${boolExpTypeName}!)` : "";
     const whereClause = filter ? `where: $filter` : "";
 
-    const query = gql` 
+    const query = gql`
       query AggregateData ${filterVariableDefinition} {
         ${aggregateTableName}(${whereClause}) {
           aggregate ${aggregateSelection}
@@ -413,13 +432,13 @@ server.tool(
 
     try {
       const rawResult = await makeGqlRequest(query, variables);
-      
+
       let finalResult = null;
       if (rawResult && rawResult[aggregateTableName] && rawResult[aggregateTableName].aggregate) {
           finalResult = rawResult[aggregateTableName].aggregate;
       } else {
           console.warn('[WARN] Unexpected result structure from aggregation query:', rawResult);
-          finalResult = rawResult; 
+          finalResult = rawResult;
       }
 
       return { content: [{ type: "text", text: JSON.stringify(finalResult, null, 2) }] };
@@ -459,7 +478,7 @@ server.tool(
          return { content: [{ type: "text", text: `Health check successful. ${resultText}` }] };
     } catch (error: any) {
         console.error(`[ERROR] Tool 'health_check' failed: ${error.message}`);
-         return { content: [{ type: "text", text: `Health check failed: ${error.message}` }], isError: false }; 
+         return { content: [{ type: "text", text: `Health check failed: ${error.message}` }], isError: false };
     }
   }
 );
@@ -475,7 +494,7 @@ server.tool(
     console.log(`[INFO] Executing tool 'describe_table' for table: ${tableName} in schema: ${schemaName}`);
     try {
       const schema = await getIntrospectionSchema();
-      
+
       const tableTypeQuery = gql`
         query GetTableType($typeName: String!) {
           __type(name: $typeName) {
@@ -517,9 +536,9 @@ server.tool(
           }
         }
       `;
-      
+
       const tableTypeResult = await makeGqlRequest(tableTypeQuery, { typeName: tableName });
-      
+
       if (!tableTypeResult.__type) {
         console.log(`[INFO] No direct match for table type: ${tableName}, trying case variations`);
         const pascalCaseName = tableName.charAt(0).toUpperCase() + tableName.slice(1);
@@ -529,13 +548,13 @@ server.tool(
         }
         tableTypeResult.__type = alternativeResult.__type;
       }
-      
+
       const columnsInfo = tableTypeResult.__type.fields.map((field: any) => {
         let typeInfo = field.type;
         let typeString = '';
         let isNonNull = false;
         let isList = false;
-        
+
         while (typeInfo) {
           if (typeInfo.kind === 'NON_NULL') {
             isNonNull = true;
@@ -548,7 +567,7 @@ server.tool(
             break;
           }
         }
-        
+
         let fullTypeString = '';
         if (isList) {
           fullTypeString = `[${typeString}]`;
@@ -558,7 +577,7 @@ server.tool(
         if (isNonNull) {
           fullTypeString += '!';
         }
-        
+
         return {
           name: field.name,
           type: fullTypeString,
@@ -566,7 +585,7 @@ server.tool(
           args: field.args?.length ? field.args : null
         };
       });
-      
+
       const result = {
         table: {
           name: tableName,
@@ -575,7 +594,7 @@ server.tool(
           columns: columnsInfo.sort((a: any, b: any) => a.name.localeCompare(b.name))
         }
       };
-      
+
       return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
     } catch (error: any) {
       console.error(`[ERROR] Tool 'describe_table' failed: ${error.message}`);

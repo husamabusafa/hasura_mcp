@@ -29,6 +29,7 @@ This server exposes the following MCP capabilities:
     *   **Description:** Executes a GraphQL mutation to insert, update, or delete data. **Use with caution**, ensure the operation is intended and safe. Relies on Hasura permissions configured for the provided Admin Secret or default role. *Example: `mutation { insert_users_one(object: {name: "Test"}) { id } }`*
     *   **Input:** `{ mutation: string, variables?: object }`
     *   **Security:** Allows any mutation permitted by the Hasura role. Ensure appropriate Hasura permissions are configured.
+    *   **Note:** This tool is disabled when the server is started with the `--read-only` flag for enhanced safety.
 
 *   **`list_tables`**
     *   **Description:** Lists available data tables (or collections) managed by Hasura, organized by schema with descriptions, based on introspection heuristics (looks for object types with an 'id' field, excluding internal/aggregate types). Useful for discovering available data sources.
@@ -57,6 +58,13 @@ This server exposes the following MCP capabilities:
 *   **`health_check`**
     *   **Description:** Checks if the configured Hasura GraphQL endpoint is reachable and responding to a basic GraphQL query (`{ __typename }`). Can optionally check a specific HTTP health endpoint URL if known.
     *   **Input:** `{ healthEndpointUrl?: string }` (Optional specific health URL)
+
+## Command Line Options
+
+*   **`--read-only`**: Optional flag that disables mutation operations for enhanced safety. When this flag is used:
+    *   The `run_graphql_mutation` tool is disabled and will not be available to MCP clients
+    *   Only read-only operations (queries, schema introspection, table listing, etc.) are permitted
+    *   Ideal for environments where data modification should be prevented
 
 ## Requirements
 
@@ -88,10 +96,10 @@ Execute the compiled script from your terminal, providing the Hasura endpoint UR
 
 ```bash
 # Using pnpm start script (defined in package.json)
-pnpm start <HASURA_GRAPHQL_ENDPOINT> [ADMIN_SECRET]
+pnpm start <HASURA_GRAPHQL_ENDPOINT> [ADMIN_SECRET] [--read-only]
 
 # Or using Node directly
-node dist/index.js <HASURA_GRAPHQL_ENDPOINT> [ADMIN_SECRET]
+node dist/index.js <HASURA_GRAPHQL_ENDPOINT> [ADMIN_SECRET] [--read-only]
 ```
 
 **Example:**
@@ -110,6 +118,20 @@ If no admin secret is needed (using default role permissions):
 
 ```bash
 pnpm start https://my-hasura.cloud/v1/graphql
+```
+
+**Using Read-Only Mode:**
+
+To run the server in read-only mode (disables mutation operations for added safety):
+
+```bash
+pnpm start https://my-hasura.cloud/v1/graphql mysecretkey123 --read-only
+```
+
+or
+
+```bash
+node dist/index.js https://my-hasura.cloud/v1/graphql mysecretkey123 --read-only
 ```
 
 The server will start, attempt an initial schema introspection, connect to the STDIO transport, and log status messages to `stderr`. It listens for MCP JSON-RPC requests on `stdin` and sends responses to `stdout`.
@@ -138,7 +160,8 @@ To connect this server to an MCP client like Cursor:
       "args": [
         "/absolute/path/to/mcp-hasura-advanced/dist/index.js", // <<< Absolute path to compiled script
         "https://YOUR_HASURA_ENDPOINT.com/v1/graphql",      // <<< Your endpoint
-        "YOUR_ADMIN_SECRET"                                   // <<< Your secret (REMOVE if no secret)
+        "YOUR_ADMIN_SECRET",                                 // <<< Your secret (REMOVE if no secret)
+        "--read-only"                                         // <<< Optional: Enable read-only mode (REMOVE if mutations needed)
       ],
       // Optional but recommended for module resolution consistency:
       "cwd": "/absolute/path/to/mcp-hasura-advanced" // <<< Absolute path to project root
@@ -158,7 +181,8 @@ To connect this server to an MCP client like Cursor:
             "args": [
                 "/absolute/path/to/mcp-hasura-advanced/dist/index.js", // <<< Absolute path to compiled script
                 "https://YOUR_HASURA_ENDPOINT.com/v1/graphql",      // <<< Your endpoint
-                "YOUR_ADMIN_SECRET"                                   // <<< Your secret (REMOVE if no secret)
+                "YOUR_ADMIN_SECRET",                                 // <<< Your secret (REMOVE if no secret)
+                "--read-only"                                         // <<< Optional: Enable read-only mode (REMOVE if mutations needed)
             ],
             // Optional:
             // "cwd": "/absolute/path/to/mcp-hasura-advanced"
