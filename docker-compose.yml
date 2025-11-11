@@ -1,0 +1,18 @@
+services:
+  hasura-mcp:
+    build:
+      context: /Users/yagizonal/githubprojects/hasura_mcp
+      target: runner
+    image: hasura-mcp:latest
+    command:
+      - node
+      - dist/index.js
+      - ${HASURA_GRAPHQL_ENDPOINT}
+      - ${HASURA_GRAPHQL_ADMIN_SECRET:-}
+    environment:
+      HASURA_GRAPHQL_ENDPOINT: ${HASURA_GRAPHQL_ENDPOINT}
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-}
+    stdin_open: true
+    tty: true
+
+

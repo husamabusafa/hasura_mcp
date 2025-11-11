@@ -1,4 +1,3 @@
-
 # Advanced Hasura GraphQL MCP Server
 
 **Version:** 1.1.0
@@ -13,57 +12,65 @@ This server exposes the following MCP capabilities:
 
 **Resources:**
 
-*   **Hasura GraphQL Schema (`hasura:/schema`)**
-    *   Provides the full GraphQL schema definition obtained via standard introspection.
-    *   **MIME Type:** `application/json`
-    *   Agents can read this resource to understand the complete structure of the API, including types, fields, arguments, directives, etc.
+- **Hasura GraphQL Schema (`hasura:/schema`)**
+  - Provides the full GraphQL schema definition obtained via standard introspection.
+  - **MIME Type:** `application/json`
+  - Agents can read this resource to understand the complete structure of the API, including types, fields, arguments, directives, etc.
 
 **Tools:**
 
-*   **`run_graphql_query`**
-    *   **Description:** Executes a read-only GraphQL query against the Hasura endpoint. Use this for fetching data when a specific tool isn't available. Ensure the query does not modify data. *Example: `query { users { id name } }`*
-    *   **Input:** `{ query: string, variables?: object }`
-    *   **Note:** Performs a basic check to prevent execution of strings starting with `mutation`. Primarily relies on the query itself being read-only.
+- **`run_graphql_query`**
 
-*   **`run_graphql_mutation`**
-    *   **Description:** Executes a GraphQL mutation to insert, update, or delete data. **Use with caution**, ensure the operation is intended and safe. Relies on Hasura permissions configured for the provided Admin Secret or default role. *Example: `mutation { insert_users_one(object: {name: "Test"}) { id } }`*
-    *   **Input:** `{ mutation: string, variables?: object }`
-    *   **Security:** Allows any mutation permitted by the Hasura role. Ensure appropriate Hasura permissions are configured.
+  - **Description:** Executes a read-only GraphQL query against the Hasura endpoint. Use this for fetching data when a specific tool isn't available. Ensure the query does not modify data. _Example: `query { users { id name } }`_
+  - **Input:** `{ query: string, variables?: object }`
+  - **Note:** Performs a basic check to prevent execution of strings starting with `mutation`. Primarily relies on the query itself being read-only.
 
-*   **`list_tables`**
-    *   **Description:** Lists available data tables (or collections) managed by Hasura, organized by schema with descriptions, based on introspection heuristics (looks for object types with an 'id' field, excluding internal/aggregate types). Useful for discovering available data sources.
-    *   **Input:** `{ schemaName?: string }` (Optional schema name, attempts to infer from field descriptions if possible, defaults to 'public' conceptually)
+- **`run_graphql_mutation`**
 
-*   **`describe_table`**
-    *   **Description:** Shows the structure of a specific table including all its columns (fields) with their GraphQL types and descriptions.
-    *   **Input:** `{ tableName: string, schemaName?: string }`
+  - **Description:** Executes a GraphQL mutation to insert, update, or delete data. **Use with caution**, ensure the operation is intended and safe. Relies on Hasura permissions configured for the provided Admin Secret or default role. _Example: `mutation { insert_users_one(object: {name: "Test"}) { id } }`_
+  - **Input:** `{ mutation: string, variables?: object }`
+  - **Security:** Allows any mutation permitted by the Hasura role. Ensure appropriate Hasura permissions are configured.
 
-*   **`list_root_fields`**
-    *   **Description:** Lists the available top-level query, mutation, or subscription fields from the GraphQL schema. Useful for understanding the primary entry points for operations.
-    *   **Input:** `{ fieldType?: 'QUERY' | 'MUTATION' | 'SUBSCRIPTION' }` (Optional filter)
+- **`list_tables`**
 
-*   **`describe_graphql_type`**
-    *   **Description:** Provides details about a specific GraphQL type (Object, Input, Scalar, Enum, Interface, Union) using schema introspection. Essential for understanding how to structure queries or mutations involving specific types.
-    *   **Input:** `{ typeName: string }` (Case-sensitive type name)
+  - **Description:** Lists available data tables (or collections) managed by Hasura, organized by schema with descriptions, based on introspection heuristics (looks for object types with an 'id' field, excluding internal/aggregate types). Useful for discovering available data sources.
+  - **Input:** `{ schemaName?: string }` (Optional schema name, attempts to infer from field descriptions if possible, defaults to 'public' conceptually)
 
-*   **`preview_table_data`**
-    *   **Description:** Fetches a limited sample of rows (default 5) from a specified table to preview its data structure and content. Selects common scalar and enum fields automatically.
-    *   **Input:** `{ tableName: string, limit?: number }`
+- **`describe_table`**
 
-*   **`aggregate_data`**
-    *   **Description:** Performs a simple aggregation (count, sum, avg, min, max) on a specified table, optionally applying a Hasura 'where' filter. Use 'list_tables' to find table names. Requires 'field' for non-count aggregations.
-    *   **Input:** `{ tableName: string, aggregateFunction: 'count'|'sum'|'avg'|'min'|'max', field?: string, filter?: object }`
+  - **Description:** Shows the structure of a specific table including all its columns (fields) with their GraphQL types and descriptions.
+  - **Input:** `{ tableName: string, schemaName?: string }`
 
-*   **`health_check`**
-    *   **Description:** Checks if the configured Hasura GraphQL endpoint is reachable and responding to a basic GraphQL query (`{ __typename }`). Can optionally check a specific HTTP health endpoint URL if known.
-    *   **Input:** `{ healthEndpointUrl?: string }` (Optional specific health URL)
+- **`list_root_fields`**
+
+  - **Description:** Lists the available top-level query, mutation, or subscription fields from the GraphQL schema. Useful for understanding the primary entry points for operations.
+  - **Input:** `{ fieldType?: 'QUERY' | 'MUTATION' | 'SUBSCRIPTION' }` (Optional filter)
+
+- **`describe_graphql_type`**
+
+  - **Description:** Provides details about a specific GraphQL type (Object, Input, Scalar, Enum, Interface, Union) using schema introspection. Essential for understanding how to structure queries or mutations involving specific types.
+  - **Input:** `{ typeName: string }` (Case-sensitive type name)
+
+- **`preview_table_data`**
+
+  - **Description:** Fetches a limited sample of rows (default 5) from a specified table to preview its data structure and content. Selects common scalar and enum fields automatically.
+  - **Input:** `{ tableName: string, limit?: number }`
+
+- **`aggregate_data`**
+
+  - **Description:** Performs a simple aggregation (count, sum, avg, min, max) on a specified table, optionally applying a Hasura 'where' filter. Use 'list_tables' to find table names. Requires 'field' for non-count aggregations.
+  - **Input:** `{ tableName: string, aggregateFunction: 'count'|'sum'|'avg'|'min'|'max', field?: string, filter?: object }`
+
+- **`health_check`**
+  - **Description:** Checks if the configured Hasura GraphQL endpoint is reachable and responding to a basic GraphQL query (`{ __typename }`). Can optionally check a specific HTTP health endpoint URL if known.
+  - **Input:** `{ healthEndpointUrl?: string }` (Optional specific health URL)
 
 ## Requirements
 
-*   Node.js (v18 or higher recommended, check `.nvmrc` or `package.json engines` if specified)
-*   `pnpm` (or `npm`/`yarn`, adjust commands accordingly)
-*   Access to a running Hasura GraphQL endpoint.
-*   (Optional but recommended) Hasura Admin Secret for privileged access, or properly configured default role permissions.
+- Node.js (v18 or higher recommended, check `.nvmrc` or `package.json engines` if specified)
+- `pnpm` (or `npm`/`yarn`, adjust commands accordingly)
+- Access to a running Hasura GraphQL endpoint.
+- (Optional but recommended) Hasura Admin Secret for privileged access, or properly configured default role permissions.
 
 ## Setup and Installation
 
@@ -114,14 +121,88 @@ pnpm start https://my-hasura.cloud/v1/graphql
 
 The server will start, attempt an initial schema introspection, connect to the STDIO transport, and log status messages to `stderr`. It listens for MCP JSON-RPC requests on `stdin` and sends responses to `stdout`.
 
+## Running with Docker
+
+You can build (or pull) and run the MCP server in a container using the provided `Dockerfile` and `docker-compose.yml`.
+
+**Build the image manually:**
+
+```bash
+docker build -t hasura-mcp:latest .
+```
+
+**Or pull a prebuilt image (replace with your registry reference):**
+
+```bash
+# Example using GitHub Container Registry
+docker pull ghcr.io/your-org/hasura-mcp:latest
+```
+
+**Run the container manually:**
+
+```bash
+docker run --rm -it \
+  -e HASURA_GRAPHQL_ENDPOINT=https://YOUR_HASURA_ENDPOINT.com/v1/graphql \
+  -e HASURA_GRAPHQL_ADMIN_SECRET=YOUR_ADMIN_SECRET \
+  ghcr.io/your-org/hasura-mcp:latest \
+  node dist/index.js https://YOUR_HASURA_ENDPOINT.com/v1/graphql YOUR_ADMIN_SECRET
+```
+
+If you do not use an admin secret, omit the environment variable and the trailing argument.
+
+**Using Docker Compose (recommended):**
+
+1.  Create a `.env` file alongside `docker-compose.yml` (optional but convenient):
+    ```bash
+    HASURA_GRAPHQL_ENDPOINT=https://YOUR_HASURA_ENDPOINT.com/v1/graphql
+    HASURA_GRAPHQL_ADMIN_SECRET=YOUR_ADMIN_SECRET # remove or leave blank if not needed
+    ```
+2.  Build and start the service:
+    ```bash
+    docker compose up --build
+    ```
+3.  The container runs the MCP server and keeps STDIN/STDOUT available so you can connect it to an MCP client or inspect logs via `docker compose logs -f`.
+
+**Integrating Docker with Cursor/Claude configuration:**
+
+If you prefer to let your MCP client run the container for you (similar to Cursor's `postgres-mcp` example), add an entry like the following to `.cursor/mcp.json` or the equivalent configuration file:
+
+```json
+{
+  "hasura-mcp": {
+    "command": "docker",
+    "args": [
+      "run",
+      "-i",
+      "--rm",
+      "-e",
+      "HASURA_GRAPHQL_ENDPOINT",
+      "-e",
+      "HASURA_GRAPHQL_ADMIN_SECRET",
+      "ghcr.io/your-org/hasura-mcp:latest",
+      "node",
+      "dist/index.js",
+      "https://YOUR_HASURA_ENDPOINT.com/v1/graphql",
+      "YOUR_ADMIN_SECRET"
+    ],
+    "env": {
+      "HASURA_GRAPHQL_ENDPOINT": "https://YOUR_HASURA_ENDPOINT.com/v1/graphql",
+      "HASURA_GRAPHQL_ADMIN_SECRET": "YOUR_ADMIN_SECRET"
+    }
+  }
+}
+```
+
+Update the image reference and credentials to match your environment. If you don't require an admin secret, remove both the environment variable and the final argument.
+
 ## Usage with MCP Clients (e.g., Cursor, Claude Desktop)
 
 To connect this server to an MCP client like Cursor:
 
 1.  **Find Absolute Paths:**
-    *   Node executable: Run `which node` in your terminal.
-    *   Server script: Navigate to the `mcp-hasura-advanced` directory and run `pwd`. Append `/dist/index.js` to the result.
-    *   Project directory: The output of `pwd`.
+    - Node executable: Run `which node` in your terminal.
+    - Server script: Navigate to the `mcp-hasura-advanced` directory and run `pwd`. Append `/dist/index.js` to the result.
+    - Project directory: The output of `pwd`.
 2.  **Configure the Client:** Open your client's configuration file (e.g., `settings.json` for Cursor, `claude_desktop_config.json` for Claude Desktop).
 3.  **Add Server Entry:** Add an entry under the appropriate key (e.g., `cursor.customMcpServers` array for Cursor, `mcpServers` object for Claude Desktop).
 
@@ -137,8 +218,8 @@ To connect this server to an MCP client like Cursor:
       "command": "/path/to/your/node", // <<< Absolute path from 'which node'
       "args": [
         "/absolute/path/to/mcp-hasura-advanced/dist/index.js", // <<< Absolute path to compiled script
-        "https://YOUR_HASURA_ENDPOINT.com/v1/graphql",      // <<< Your endpoint
-        "YOUR_ADMIN_SECRET"                                   // <<< Your secret (REMOVE if no secret)
+        "https://YOUR_HASURA_ENDPOINT.com/v1/graphql", // <<< Your endpoint
+        "YOUR_ADMIN_SECRET" // <<< Your secret (REMOVE if no secret)
       ],
       // Optional but recommended for module resolution consistency:
       "cwd": "/absolute/path/to/mcp-hasura-advanced" // <<< Absolute path to project root
@@ -151,19 +232,20 @@ To connect this server to an MCP client like Cursor:
 
 ```json
 {
-    "mcpServers": {
-        // ... other servers ...
-        "hasura-advanced": { // Key used internally by Claude
-            "command": "/path/to/your/node", // <<< Absolute path from 'which node'
-            "args": [
-                "/absolute/path/to/mcp-hasura-advanced/dist/index.js", // <<< Absolute path to compiled script
-                "https://YOUR_HASURA_ENDPOINT.com/v1/graphql",      // <<< Your endpoint
-                "YOUR_ADMIN_SECRET"                                   // <<< Your secret (REMOVE if no secret)
-            ],
-            // Optional:
-            // "cwd": "/absolute/path/to/mcp-hasura-advanced"
-        }
+  "mcpServers": {
+    // ... other servers ...
+    "hasura-advanced": {
+      // Key used internally by Claude
+      "command": "/path/to/your/node", // <<< Absolute path from 'which node'
+      "args": [
+        "/absolute/path/to/mcp-hasura-advanced/dist/index.js", // <<< Absolute path to compiled script
+        "https://YOUR_HASURA_ENDPOINT.com/v1/graphql", // <<< Your endpoint
+        "YOUR_ADMIN_SECRET" // <<< Your secret (REMOVE if no secret)
+      ]
+      // Optional:
+      // "cwd": "/absolute/path/to/mcp-hasura-advanced"
     }
+  }
 }
 ```
 
@@ -174,5 +256,5 @@ To connect this server to an MCP client like Cursor:
 
 ## Development
 
-*   **Run in Dev Mode:** Use `pnpm run dev <ENDPOINT> [SECRET]` to run the server directly with `ts-node` for faster iteration (no build step needed).
-*   **Testing:** Test individual tools by running the server manually (`pnpm start ...`) and piping JSON-RPC requests to its `stdin`.
+- **Run in Dev Mode:** Use `pnpm run dev <ENDPOINT> [SECRET]` to run the server directly with `ts-node` for faster iteration (no build step needed).
+- **Testing:** Test individual tools by running the server manually (`pnpm start ...`) and piping JSON-RPC requests to its `stdin`.
