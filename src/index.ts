@@ -24,10 +24,6 @@ const SCHEMA_MIME_TYPE = "application/json";
 const server = new McpServer({
   name: SERVER_NAME,
   version: SERVER_VERSION,
-  capabilities: {
-    resources: {},
-    tools: {},
-  },
 });
 
 const args = process.argv.slice(2);
